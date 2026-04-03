@@ -1,0 +1,26 @@
+services:
+  pgvec:
+    image: pgvector/pgvector:pg17-bookworm
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: benchdb
+    ports:
+      - "${PGPORT:-5432}:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - pgvec_data:/var/lib/postgresql/data
+    shm_size: 1g
+    command: >
+      postgres
+        -c max_connections=200
+        -c shared_buffers=256MB
+        -c work_mem=64MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench -d benchdb"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgvec_data:
