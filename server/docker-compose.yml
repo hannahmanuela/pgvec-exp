@@ -16,11 +16,17 @@ services:
         -c max_connections=200
         -c shared_buffers=256MB
         -c work_mem=64MB
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bench -d benchdb"]
-      interval: 2s
-      timeout: 5s
-      retries: 20
+    cpuset: "4,6,8,10"
+
+  bg:
+    build:
+      context: ../bg
+    profiles: ["std"]
+    ports:
+      - "3001:3001"
+    privileged: true
+    cpu_shares: 2
+    cpuset: "4,6,8,10"
 
 volumes:
   pgvec_data:

@@ -19,7 +19,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgvector "github.com/pgvector/pgvector-go"
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
-	"golang.org/x/time/rate"
 )
 
 type sample struct {
@@ -36,17 +35,17 @@ func main() {
 	dbname := flag.String("dbname", "benchdb", "Postgres database")
 	targetRate := flag.Float64("rate", 100, "Target requests per second")
 	duration := flag.Int("duration", 60, "Test duration in seconds")
+	rampUp := flag.Int("ramp-up", 10, "Ramp-up duration in seconds; rate increases linearly from 0 to target before the timed test")
 	workers := flag.Int("workers", 50, "Worker goroutine pool size")
-	dim := flag.Int("dim", 768, "Query vector dimension")
-	outDir := flag.String("out", "out", "Directory to write results CSV")
+	dim     := flag.Int("dim", 768, "Query vector dimension")
+	outDir  := flag.String("out", "out", "Directory to write results CSV")
 	flag.Parse()
 
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		log.Fatalf("create output dir: %v", err)
 	}
 
-	ts := time.Now().Format("20060102_150405")
-	csvPath := filepath.Join(*outDir, ts+"_results.csv")
+	csvPath := filepath.Join(*outDir, "srv_times.txt")
 	f, err := os.Create(csvPath)
 	if err != nil {
 		log.Fatalf("create csv: %v", err)
@@ -99,19 +98,42 @@ func main() {
 		w.Flush()
 	}()
 
-	// Dispatcher: fires one job per 1/rate seconds using a token-bucket limiter.
+	// Dispatcher: Poisson arrivals via exponential inter-arrival times (mean = 1/rate).
+	// During ramp-up the instantaneous rate increases linearly from 1 req/s to targetRate.
 	// sentAt is captured here (dispatch time), not when the worker dequeues the job,
 	// so latency includes any time spent waiting for a free worker.
 	jobs := make(chan int64, *workers)
 	var dropped int64
 	go func() {
 		defer close(jobs)
-		lim := rate.NewLimiter(rate.Limit(*targetRate), 1)
-		deadline := time.Now().Add(time.Duration(*duration) * time.Second)
+
+		dispRng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		rampDur := time.Duration(*rampUp) * time.Second
+		rampStart := time.Now()
+		deadline := rampStart.Add(rampDur + time.Duration(*duration)*time.Second)
+
 		for time.Now().Before(deadline) {
-			if err := lim.Wait(ctx); err != nil {
-				return
+			// Linearly ramp up the rate during the ramp-up window.
+			var currentRate float64
+			if *rampUp > 0 {
+				elapsed := time.Since(rampStart)
+				if elapsed < rampDur {
+					frac := float64(elapsed) / float64(rampDur)
+					currentRate = frac * *targetRate
+					if currentRate < 1 {
+						currentRate = 1
+					}
+				} else {
+					currentRate = *targetRate
+				}
+			} else {
+				currentRate = *targetRate
 			}
+
+			// Sample next inter-arrival time from Exp(currentRate).
+			interval := time.Duration(dispRng.ExpFloat64() / currentRate * float64(time.Second))
+			time.Sleep(interval)
+
 			sentAt := time.Now().UnixNano()
 			select {
 			case jobs <- sentAt:
@@ -160,7 +182,7 @@ func main() {
 	close(samples)
 	writerDone.Wait()
 
-	printSummary(latencies, errCount, atomic.LoadInt64(&dropped), *targetRate, *duration, csvPath)
+	printSummary(latencies, errCount, atomic.LoadInt64(&dropped), *targetRate, *duration, *rampUp, csvPath)
 }
 
 func randVector(rng *rand.Rand, dim int) []float32 {
@@ -171,12 +193,15 @@ func randVector(rng *rand.Rand, dim int) []float32 {
 	return v
 }
 
-func printSummary(latencies []int64, errCount, dropped int64, targetRate float64, duration int, csvPath string) {
+func printSummary(latencies []int64, errCount, dropped int64, targetRate float64, duration, rampUp int, csvPath string) {
 	total := int64(len(latencies))
 	fmt.Printf("\n--- Results ---\n")
 	fmt.Printf("Target rate:   %.1f req/s\n", targetRate)
+	if rampUp > 0 {
+		fmt.Printf("Ramp-up:       %ds\n", rampUp)
+	}
 	fmt.Printf("Duration:      %ds\n", duration)
-	fmt.Printf("Completed:     %d (%.1f req/s actual)\n", total, float64(total)/float64(duration))
+	fmt.Printf("Completed:     %d (%.1f req/s actual)\n", total, float64(total)/float64(duration+rampUp))
 	fmt.Printf("Errors:        %d\n", errCount)
 	fmt.Printf("Dropped:       %d  (system saturated; all workers busy at dispatch time)\n", dropped)
 
