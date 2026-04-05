@@ -107,7 +107,7 @@ func main() {
 	go func() {
 		defer close(jobs)
 
-		dispRng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		dispRng := rand.New(rand.NewSource(12))
 		rampDur := time.Duration(*rampUp) * time.Second
 		rampStart := time.Now()
 		deadline := rampStart.Add(rampDur + time.Duration(*duration)*time.Second)
@@ -152,7 +152,7 @@ func main() {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			rng := rand.New(rand.NewSource(time.Now().UnixNano() ^ int64(id)))
+			rng := rand.New(rand.NewSource(int64(id)))
 			for sentAt := range jobs {
 				vec := randVector(rng, *dim)
 				qCtx, cancel := context.WithTimeout(ctx, 10*time.Second)

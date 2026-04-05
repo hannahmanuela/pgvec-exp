@@ -3,13 +3,13 @@
 Target rate:   1500.0 req/s
 Ramp-up:       10s
 Duration:      60s
-Completed:     58616 (837.4 req/s actual)
+Completed:     58567 (836.7 req/s actual)
 Errors:        0
 Dropped:       0  (system saturated; all workers busy at dispatch time)
 Latency (µs):
-  p50:         3408
-  p95:         10685
-  p99:         19196
-  p99.9:       33401
-  max:         92728
+  p50:         3704
+  p95:         15703
+  p99:         33557
+  p99.9:       91848
+  max:         235728
 CSV:           /users/hmng/pgvec-exp/out/std/unedited/srv_times.txt

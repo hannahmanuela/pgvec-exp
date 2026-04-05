@@ -18,7 +18,7 @@ parser.add_argument("--mean-bars", action="store_true", help="Show horizontal me
 parser.add_argument("--no-cpu", action="store_true", help="Only show the top latency graph, omit the CPU utilization graph")
 args = parser.parse_args()
 
-warmup_s = 0.0
+warmup_s = 12.0
 
 def draw_single(grouped, resize_times, place_to_save, bg_start_since, cpu_usage, cpu_util, mean_bars=False, no_cpu=False):
     if no_cpu:
@@ -154,29 +154,21 @@ def draw_comparison(all_results, save_path):
     """Draw overlaid comparison of client mean latency across multiple runs."""
     fig, ax = plt.subplots(figsize=(14, 7))
 
-    ref_bg_start = next(iter(all_results.values()))[1]
-    ref_bg_starts = [ref_bg_start] if ref_bg_start > 0 else []
-    palette = sns.color_palette()
+    palette = sns.color_palette("tab10", n_colors=len(all_results))
 
-    for idx, (label, (grouped_clnt, _)) in enumerate(all_results.items()):
-        color = palette[idx]
-        sns.lineplot(ax=ax, data=grouped_clnt, x='time_bin', y='mean_latency', label=label, alpha=0.4, color=color)
-        x_max = grouped_clnt['time_bin'].max()
-        boundaries = [warmup_s] + list(ref_bg_starts) + [x_max]
-        for left, right in zip(boundaries[:-1], boundaries[1:]):
-            section = grouped_clnt[(grouped_clnt['time_bin'] >= left) & (grouped_clnt['time_bin'] < right)]
-            if section.empty:
-                continue
-            avg = section['mean_latency'].mean()
-            ax.hlines(avg, left, right, colors=color, linestyles='dotted', linewidth=4)
-            mid = (left + right) / 2
-            ax.text(mid, avg, f'{avg:.0f}ms', fontsize=16, fontweight='bold',
-                    color=color, va='bottom', ha='center')
+    unique_bg_starts = []
+    for color, (label, (grouped_clnt, bg_start_since)) in zip(palette, all_results.items()):
+        ax.plot(grouped_clnt['time_bin'], grouped_clnt['mean_latency'],
+                label=f'{label} mean', color=color, linestyle='-')
+        # ax.plot(grouped_clnt['time_bin'], grouped_clnt['p99_latency'],
+        #         label=f'{label} p99', color=color, linestyle='--')
+        if bg_start_since > 0 and not any(np.isclose(bg_start_since, v, atol=0.005) for v, _ in unique_bg_starts):
+            unique_bg_starts.append((bg_start_since, label))
 
-    for t in ref_bg_starts:
-        ax.axvline(x=t, color='darkorange', linestyle='--', linewidth=1.5)
-        ax.text(t, 0.97, ' BG Start', fontsize=13, color='darkorange',
-                va='top', transform=ax.get_xaxis_transform())
+    for idx, (start_val, label) in enumerate(unique_bg_starts):
+        start_label = 'BG start' if len(unique_bg_starts) == 1 else f'BG start ({label})'
+        ax.axvline(x=start_val, color='red', linestyle=':', alpha=0.7,
+                   label=start_label if idx == 0 else None)
 
     ax.set_ylabel('Latency (ms)')
     ax.set_xlabel('Time Since Start (s)')
