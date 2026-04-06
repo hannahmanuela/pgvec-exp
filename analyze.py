@@ -28,7 +28,7 @@ def draw_single(grouped, resize_times, place_to_save, bg_start_since, cpu_usage,
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
 
     sns.lineplot(ax=ax1, data=grouped, x='time_bin', y='mean_latency', label='Mean Latency', alpha=0.4)
-    # sns.lineplot(ax=ax1, data=grouped, x='time_bin', y='p99_latency', label='99th Percentile Latency')
+    sns.lineplot(ax=ax1, data=grouped, x='time_bin', y='p99_latency', label='99th Percentile Latency')
     if bg_start_since > 0:
         ax1.axvline(x=bg_start_since, color='red', linestyle='--', label='BG Start')
         if mean_bars:
@@ -160,8 +160,8 @@ def draw_comparison(all_results, save_path):
     for color, (label, (grouped_clnt, bg_start_since)) in zip(palette, all_results.items()):
         ax.plot(grouped_clnt['time_bin'], grouped_clnt['mean_latency'],
                 label=f'{label} mean', color=color, linestyle='-')
-        # ax.plot(grouped_clnt['time_bin'], grouped_clnt['p99_latency'],
-        #         label=f'{label} p99', color=color, linestyle='--')
+        ax.plot(grouped_clnt['time_bin'], grouped_clnt['p99_latency'],
+                label=f'{label} p99', color=color, linestyle='--')
         if bg_start_since > 0 and not any(np.isclose(bg_start_since, v, atol=0.005) for v, _ in unique_bg_starts):
             unique_bg_starts.append((bg_start_since, label))
 

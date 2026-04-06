@@ -4,9 +4,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # Defaults
-RATE=1500
+RATE=3000
 DURATION=60
-HOST=10.10.1.2
+HOST=10.2.1.25
 PORT=5432
 ROWS=100000
 KEEP_DB=false
@@ -17,8 +17,8 @@ NUM_BG=4
 
 RUN_MODE=""
 
-REMOTE_MACHINE=n0
-REMOTE_USER=hmng
+REMOTE_MACHINE=zg01
+REMOTE_USER=hannahmanuela
 REMOTE_DIR="~/pgvec-exp"
 
 usage() {

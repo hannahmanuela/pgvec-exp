@@ -1,15 +1,15 @@
 
 --- Results ---
-Target rate:   1500.0 req/s
+Target rate:   3000.0 req/s
 Ramp-up:       10s
 Duration:      60s
-Completed:     58416 (834.5 req/s actual)
+Completed:     86428 (1234.7 req/s actual)
 Errors:        0
-Dropped:       31  (system saturated; all workers busy at dispatch time)
+Dropped:       0  (system saturated; all workers busy at dispatch time)
 Latency (µs):
-  p50:         3799
-  p95:         13206
-  p99:         73321
-  p99.9:       219857
-  max:         503426
-CSV:           /users/hmng/pgvec-exp/out/std/scx/srv_times.txt
+  p50:         1695
+  p95:         3371
+  p99:         4368
+  p99.9:       9199
+  max:         209912
+CSV:           /home/hannahmanuela/pgvec-exp/out/std/scx/srv_times.txt
