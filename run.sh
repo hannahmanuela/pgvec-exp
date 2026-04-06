@@ -140,7 +140,7 @@ if [[ -n "$PROFILE" ]]; then
     echo "==> Waiting $(( BG_START_OFFSET - 5 ))s before starting schedviz trace..."
     sleep "$(( BG_START_OFFSET - 5 ))"
     echo "==> Starting schedviz trace..."
-    ssh $REMOTE_MACHINE "(nohup sudo /users/hmng/schedviz/util/trace.sh -out \"/users/hmng/pgvec-exp/$OUTDIR\" -buffer_size 16384 -copy_timeout 5 -capture_seconds 15 &) &" &
+    ssh $REMOTE_MACHINE "(nohup sudo /home/hannahmanuela/schedviz/util/trace.sh -out \"/home/hannahmanuela/pgvec-exp/$OUTDIR\" -buffer_size 16384 -copy_timeout 5 -capture_seconds 15 &) &" &
     sleep 5
   else
     echo "==> Waiting ${BG_START_OFFSET}s before starting bg workload..."
@@ -162,7 +162,7 @@ ssh $REMOTE_MACHINE "sudo kill -9 \$(cat $REMOTE_DIR/gen_util.pid)" || true
 scp $REMOTE_USER@$REMOTE_MACHINE:$REMOTE_DIR/$OUTDIR/utils.txt "$REPO_ROOT/$OUTDIR/"
 
 if [[ "$SCHEDVIZ" == true ]]; then
-  scp $REMOTE_USER@$REMOTE_MACHINE:/users/hmng/pgvec-exp/$OUTDIR/trace.tar.gz "$REPO_ROOT/$OUTDIR/trace.tar.gz"
+  scp $REMOTE_USER@$REMOTE_MACHINE:~/pgvec-exp/$OUTDIR/trace.tar.gz "$REPO_ROOT/$OUTDIR/trace.tar.gz"
 fi
 
 # ── Teardown ───────────────────────────────────────────────────────────────────
