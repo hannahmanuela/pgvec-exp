@@ -106,7 +106,7 @@ def run_on_path(run_dir_path):
             print(f"\n  {label} (n={len(subset)}):")
             print(f"    Latency:")
             print(f"      mean={subset['latency_ms'].mean():.2f}ms  median={subset['latency_ms'].median():.2f}ms  "
-                  f"p99={subset['latency_ms'].quantile(0.99):.2f}ms  max={subset['latency_ms'].max():.2f}ms")
+                  f"p95={subset['latency_ms'].quantile(0.95):.2f}ms  p99={subset['latency_ms'].quantile(0.99):.2f}ms  max={subset['latency_ms'].max():.2f}ms")
 
     # Resize times
     file_path = f'{run_dir_path}/bg_times.txt'
